@@ -1,0 +1,85 @@
+[![](https://img.shields.io/badge/HubSpot-YES-brightgreen?style=plastic&logo=hubspot)](#) [![](https://img.shields.io/badge/WordPress-on--the--way-blueviolet?style=plastic&logo=wordpress)](#)
+
+# ihs-auth0-integrations [![](https://img.shields.io/badge/status-beta-ff6200?style=plastic&logo=appveyor)](#)
+This package contains npm modules to be used with Auth0 as actions inside Auth0 flows. **We recommend to use always ihs-auth0-integrations@latest when deploying the action(s) to Auth0 since this package is still in process of adding functionalities** and older versions may be removed from npm.
+
+# USAGE
+The package should not be installed with npm -i command but should be added as dependency in Auth0 actions. **npm i ihs-auth0-integrations --prefix your-test-folder** can be used to explore the content of the package on your local environment. Note that the functionality is grouped by topics (i.e. integration with HubSpot is one file named hubspot-integration.js) but this doesn't mean that the module exports cannot be combined in complex Auth0 actions. Each action takes the arguments provided by Auth0, namely the api and event objects. Actions can be invoked like this: **actionName(event, api)**, see example below.
+
+# Example
+Using the module for a post-login Auth0 action in the login flow to sync users with HubSpot contacts:
+
+```
+exports.onExecutePostLogin = async (event, api) => {
+  const ihsAuth0 = require('ihs-auth0-integrations');
+  ihsAuth0.syncHSContacts (event, api);
+};
+
+```
+
+or, if you want to run more actions inside your flow
+
+```
+exports.onExecutePostLogin = async (event, api) => {
+  const {syncHSContacts, ihsAuth0WPIntegration} = require('ihs-auth0-integrations');
+  syncHSContacts (event, api);
+  ihsAuth0WPIntegration(event, api);
+};
+```
+
+# Limitations
+Be aware of the known Auth0 limitations. For example, event and api objects (and their methods) cannot be used in callbacks and/or promise chains as they will not produce any effect on the Auth0 objects nor the usage will raise errors (i.e.  api.user.setAppMetadata('app-metadata-name', 'some value')) will not change the metadata value when used in callbacks. As Auth0 docs mention, all similar api calls will be collected in a single batch of changes and will be actually written to the Auth0 objects when the flow (e.g. login flow) ends. Due to the async nature of Auth0 actions, the update of Auth0 objects may take place after the end of the flow if api and event methods are called inside callbacks or promises chains. Check Auth0 documentation to see if there is any change on this. However, this package uses mostly Auth0 Management API for updating metadata (user_metadata and app_metadata).
+
+# Actions
+- **syncHSContacts**: syncs users with HubSpot contacts. New users are added as HubSpot contacts at the first login.
+
+SECRETS:
+1. **HUBSPOT_PRIVATE_APP_TOKEN**: access token of the private HubSpot app that you use for Auth0-HS sync
+2. **AUTH_DOMAIN**: your Auth0 tenant domain
+3. **CLIENT_ID**: the Client Id of your Auth0 application
+4. **CLIENT_SECRET**: the Client Secret of your Auth0 application
+5. **HUBSPOT_INTEGRATION_RAISE_TICKETS**: the HubSpot integration can raise or not tickets; **values**: "true"/"false". Note that you HubSpot private app must have access to tickets
+6. **HUBSPOT_SUPPORT_PIPELINE_ID**: the support pipeline in which the tickets will be registered; **values**: the numeric ID of the pipleline, check HubSpot docs to see how to identify the numeric ID of a support pipleline
+7. **HUBSPOT_TICKET_INITITAL_STAGE**: the initial stage of the ticket; **values**: the numeric id of the initital ticket stage, check HubSpot docs to see how to identify the numeric ID of a ticket stage
+8. **HUBSPOT_TICKET_PRIORITY**: the priority of the ticket; **values**: "HIGH"/"MEDIUM"/"LOW"
+
+- **ihsAuth0WPIntegration**: WordPress integration (NOT IMPLEMENTED YET)
+
+# Configuration
+1. follow Auth0 instructions and create a custom action
+2. for the new custom action, add dependency to ihs-auth0-integrations@latest
+3. add the code as shown above in "Example" section
+4. add the required secrets to the action
+5. deploy the action
+6. add the action to the flow that you want
+
+**THAT'S ALL!!!**
+
+# Testing
+You should have the following:
+- HubSpot Account
+- HubSpot Private App configured in your account with permissions to create/update contacts
+- Auth0 account and tenant
+- Auth0 application inside your tenant
+
+Refer to HubSpot and Auth0 documentations in order to find out how to setup the above.
+Once all of above are in place ...
+1. go to your Auth0 account and install Real-time Webtask Logs extension.
+2. open Real-time Webtask Logs extension
+3. go to Actions and select the flow that contains the action you just created
+4. click and open the action
+5. use the test button form the left-top of the action editor
+6. check the Real-time Webtask Logs screen, you shoudld see the console messages generated by the action
+7. check your HubSpot contacts page, you should see the new contact that was created
+8. if everything is ok so far, repeat steps 1-7 with a real user from your tenant
+9. check again the HubSpot contacts page, click the user name in the table and observe the browser url that should be in the form https://app.hubspot.com/contacts/HubSpot-Portal-Id/contact/HubSpot-Contact-Id
+10. go to your User Management section of Auth0 and open the details of that user
+11. you should see that app_metadata contains:
+```
+"hubspot": {
+    "hubSpotContactCreated": true,
+    "hubSpotContactId": HubSpot-Contact-Id
+  }
+```
+
+

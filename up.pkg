@@ -1,0 +1,54 @@
+#!/bin/bash
+
+clear
+
+fileName=package.json
+keyName=version
+packageName=name
+
+if test -e $fileName
+then
+    echo "------------------------------------------------------"
+    echo "If you are not logged in to npm registry, login first and then run this script!"
+
+    value=$(grep $keyName $fileName | cut -d ":" -f2-)
+    pName=$(grep $packageName $fileName | cut -d ":" -f2-)
+    echo "Package: " $pName
+    echo "Current package version: " $value
+
+    echo "What kind of version do you want?"
+    echo "  1) MAJOR"
+    echo "  2) MINOR"
+    echo "  3) PATCH"
+    echo "  4) RESET (this will make the version=1.0.0)"
+
+    echo "------------------------------------------------------"
+    echo "You can select one option to do something or type anything else to exit..."
+    read -p "Select one option : " n
+    echo "------------------------------------------------------"
+
+    case $n in
+        1) npm version major --no-git-tag-version --silent;;
+        2) npm version minor --no-git-tag-version --silent;;
+        3) npm version patch --no-git-tag-version --silent;;
+        4) npm unpublish $packageName@1.0.0 | npm version '1.0.0' --no-git-tag-version --silent;;
+        *) echo -e "\nOk, if this is what you want, then I exit here!\nWhen you need me, run the script again and choose one of the above!\n";;
+    esac
+
+    newValue=$(grep $keyName $fileName | cut -d ":" -f2-)
+
+    if test $value = $newValue
+    then
+        echo "Package version not changed! Version is: " $value
+        echo "------------------------------------------------------"
+    else
+        echo "New package version is: " $newValue
+        npm publish
+        echo "------------------------------------------------------"
+    fi
+else
+    echo "------------------------------------------------------"
+    echo "package.json not found. Run npm init first"
+    echo "------------------------------------------------------"
+fi
+
