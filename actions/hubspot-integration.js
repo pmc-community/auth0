@@ -1,6 +1,7 @@
 /*
  * npm module for auth0-HubSpot integration
 */
+
 const _ = require('lodash');
 const { executeHSAPI } = require('../helpers/hubspot-api');
 const { checkAppMetadata } = require('../helpers/api-helpers');
